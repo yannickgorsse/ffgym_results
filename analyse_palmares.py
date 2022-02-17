@@ -22,22 +22,22 @@ def get_data_from_json(my_js_file):
             my_data[title][cat] = {}
             for team in categorie["teams"]:
                 city_rank = team["city"]
-                my_data[title][cat][city_rank] = {"classement" : team["markRank"]}
+                my_data[title][cat][city_rank] = {"classement" : team["markRank"], "gyms": {}}
                 for entity in team["entities"]:
                     if "mark" in entity:
-                        my_data[title][cat][city_rank][entity["firstname"]] = {}
+                        my_data[title][cat][city_rank]["gyms"][(entity["firstname"], entity["lastname"])] = {}
                         # print(entity["firstname"], entity["mark"]["value"], entity["markRank"]) # markRank identique que l'equipe (en tout cas dans le cas equipe)
-                        my_data[title][cat][city_rank][entity["firstname"]]["total"] = entity["mark"]["value"]
-                        if entity["firstname"] in all_gyms: raise Exception("pouet")
-                        all_gyms[entity["firstname"]] = float(entity["mark"]["value"])
+                        my_data[title][cat][city_rank]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
+                        if (entity["firstname"], entity["lastname"]) in all_gyms: raise Exception("pouet")
+                        all_gyms[(entity["firstname"], entity["lastname"])] = float(entity["mark"]["value"])
                         for appm in entity["mark"]["appMarks"]:
                             # print("    ", appm["labelApp"], appm["value"])
-                            my_data[title][cat][city_rank][entity["firstname"]][appm["labelApp"]] = appm["value"]
+                            my_data[title][cat][city_rank]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
                 # print(my_data[title])
             dic_rank = {key: rank for rank, key in enumerate(sorted(all_gyms, key=all_gyms.get, reverse=True), 1)}
             for city, gyms in my_data[title][cat].items():
-                for nom_gym, _ in gyms.items():
-                    if nom_gym != "classement": my_data[title][cat][city][nom_gym]["rankCalc"] = dic_rank[nom_gym]
+                for nom_gym, _ in gyms["gyms"].items():
+                    my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
     return my_data
 
 if __name__ == "__main__":
@@ -51,11 +51,10 @@ if __name__ == "__main__":
             plt.figure(figsize=(8, 8))
             plt.subplot(polar=True)
             for city, data_city in cat.items():
-                for nom_gym, notes in data_city.items():
-                    if nom_gym != "classement":
-                        marks = [float(notes[a]) for a in agres]
-                        label = f"{nom_gym} : total {float(notes['total'])}, rank {notes['rankCalc']}"
-                        plt.plot(label_loc, marks, label=None if city != "GIF SUR YVETTE" else label, color="grey" if city != "GIF SUR YVETTE" else None)
+                for nom_gym, notes in data_city["gyms"].items():
+                    marks = [float(notes[a]) for a in agres]
+                    label = f"{nom_gym[0]} : total {float(notes['total'])}, rank {notes['rankCalc']}"
+                    plt.plot(label_loc, marks, label=None if city != "GIF SUR YVETTE" else label, color="grey" if city != "GIF SUR YVETTE" else None)
             t = f"{name_event}\n{name_cat} - " + ("équipes" if entype == "EQU" else "indiv")
             t += (f"\nClassement : {cat['GIF SUR YVETTE']['classement']}/{len(cat)}") if entype == "EQU" else ""
             t += "\n"
