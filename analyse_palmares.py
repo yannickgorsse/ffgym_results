@@ -73,6 +73,7 @@ if __name__ == "__main__":
             ny = 2
             nx = ceil(len(event) / ny)
             fig, axs = plt.subplots(nx, ny, subplot_kw={'projection': 'polar'}, figsize=(8 * ny, 8 * nx))
+            fig.suptitle(f"{name_event} - {dates}\n", fontsize=20)
             for i, ((name_cat, entype), cat) in enumerate(event.items()):
                 label_loc = np.linspace(start=0, stop=2 * np.pi, num=len(agres))
                 note_max = 0
@@ -93,9 +94,9 @@ if __name__ == "__main__":
                             label=None if city != gif else label,
                             color="grey" if city != gif else None,
                             zorder=100 if city == gif else 1,
-                            linewidth=2 if city == gif else 0.75,
+                            linewidth=2.5 if city == gif else 0.75,
                         )
-                t = f"{name_event} - {dates}\n{name_cat}" # - " + ("équipes" if entype == "EQU" else "indiv")
+                t = name_cat # - " + ("équipes" if entype == "EQU" else "indiv")
                 for team in teams:
                     t_ = "\nClassement " + (team if len(teams) > 1 else "")
                     t += (f"{t_} : {cat[(gif, team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
@@ -106,6 +107,7 @@ if __name__ == "__main__":
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
             name_event_modif = "_".join(name_event.split())
             plt.tight_layout()
+            plt.subplots_adjust(bottom=0.05 / nx)
             fig.savefig(f"{name_event_modif}.png")
             # plt.show()
             plt.close(fig)
