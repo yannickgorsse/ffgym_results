@@ -58,12 +58,19 @@ if __name__ == "__main__":
                 fig = plt.figure(figsize=(8, 8))
                 plt.subplot(polar=True)
                 note_max = 0
+                with_gif, teams = False, []
+                for (city, team), data_city in cat.items():
+                    if city == "GIF SUR YVETTE":
+                        with_gif = True
+                        teams.append(team)
                 for (city, team), data_city in cat.items():
                     for nom_gym, notes in data_city["gyms"].items():
                         # print(notes)
                         marks = [float(notes[a]) if a in notes else 0 for a in agres]
                         note_max = max(note_max, max(marks))
-                        label = f"{nom_gym[0]} : total {float(notes['total'])}, rank {notes['rankCalc']}"
+                        shor_team_name = team[:2] + team[-1]
+                        eq = f" {shor_team_name} " if len(teams) > 1 else " "
+                        label = f"{nom_gym[0]}{eq}: total {float(notes['total'])}, {notes['rankCalc']}$^e$"
                         plt.plot(
                             label_loc,
                             marks,
@@ -72,15 +79,17 @@ if __name__ == "__main__":
                             zorder=100 if city == "GIF SUR YVETTE" else 1,
                             linewidth=2 if city == "GIF SUR YVETTE" else 0.75,
                         )
-                t = f"{name_event} - {dates}\n{name_cat} - " + ("équipes" if entype == "EQU" else "indiv")
-                if ("GIF SUR YVETTE", "Equipe 1") in cat:
-                    t += (f"\nClassement : {cat[('GIF SUR YVETTE', 'Equipe 1')]['classement']}/{len(cat)}") if entype == "EQU" else ""
+                t = f"{name_event} - {dates}\n{name_cat}" # - " + ("équipes" if entype == "EQU" else "indiv")
+                if with_gif:
+                    for team in teams:
+                        t_ = "\nClassement" + (team if len(teams) > 1 else "")
+                        t += (f"{t_} : {cat[('GIF SUR YVETTE', team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
                     t += "\n"
                     plt.title(t, size=15)
                     plt.yticks(list(range(ceil(note_max))))
                     plt.subplots_adjust(left=0.01, right=0.99, top=0.8, bottom=0.1)
                     lines, labels = plt.thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
-                    plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1.0))
+                    plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
                     name_event_modif = "_".join(name_event.split())
                     name_cat_modif = "_".join(name_cat.split())
                     # short_name
