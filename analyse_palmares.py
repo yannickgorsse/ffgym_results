@@ -3,7 +3,10 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from math import ceil
+import copy
+# import logging
 
+# logging.basicConfig(level=logging.DEBUG)
 
 def get_data_from_json(my_js_file):
     with open(my_js_file, "r") as f:
@@ -45,33 +48,46 @@ def get_data_from_json(my_js_file):
                     my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
     return my_data
 
+def filter_data_with(d, filter_str):
+    filtered_dic = copy.deepcopy(d)
+
+    for ne, event in my_dic.items():
+        for nc, cat in event.items():
+            with_gif = False
+            for (city, _), _ in cat.items():
+                if city == "GIF SUR YVETTE":
+                    with_gif = True
+            if not with_gif: del filtered_dic[ne][nc]
+
+    return filtered_dic
+
 
 if __name__ == "__main__":
     for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json"]:
         my_dic = get_data_from_json(json_file)
+        my_dic = filter_data_with(my_dic, "GIF SUR YVETTE")
         agres = ["Saut", "Barres asymétriques", "Poutre", "Sol"]
         agres = [*agres, agres[0]]
 
         for (name_event, dates), event in my_dic.items():
-            for (name_cat, entype), cat in event.items():
+            ny = 2
+            nx = ceil(len(event) / ny)
+            fig, axs = plt.subplots(nx, ny, subplot_kw={'projection': 'polar'}, figsize=(8 * ny, 8 * nx))
+            for i, ((name_cat, entype), cat) in enumerate(event.items()):
                 label_loc = np.linspace(start=0, stop=2 * np.pi, num=len(agres))
-                fig = plt.figure(figsize=(8, 8))
-                plt.subplot(polar=True)
                 note_max = 0
-                with_gif, teams = False, []
+                teams = []
                 for (city, team), data_city in cat.items():
                     if city == "GIF SUR YVETTE":
-                        with_gif = True
                         teams.append(team)
                 for (city, team), data_city in cat.items():
                     for nom_gym, notes in data_city["gyms"].items():
-                        # print(notes)
                         marks = [float(notes[a]) if a in notes else 0 for a in agres]
                         note_max = max(note_max, max(marks))
                         shor_team_name = team[:2] + team[-1]
                         eq = f" {shor_team_name} " if len(teams) > 1 else " "
                         label = f"{nom_gym[0]}{eq}: total {float(notes['total'])}, {notes['rankCalc']}$^e$"
-                        plt.plot(
+                        (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).plot(
                             label_loc,
                             marks,
                             label=None if city != "GIF SUR YVETTE" else label,
@@ -80,19 +96,16 @@ if __name__ == "__main__":
                             linewidth=2 if city == "GIF SUR YVETTE" else 0.75,
                         )
                 t = f"{name_event} - {dates}\n{name_cat}" # - " + ("équipes" if entype == "EQU" else "indiv")
-                if with_gif:
-                    for team in teams:
-                        t_ = "\nClassement" + (team if len(teams) > 1 else "")
-                        t += (f"{t_} : {cat[('GIF SUR YVETTE', team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
-                    t += "\n"
-                    plt.title(t, size=15)
-                    plt.yticks(list(range(ceil(note_max))))
-                    plt.subplots_adjust(left=0.01, right=0.99, top=0.8, bottom=0.1)
-                    lines, labels = plt.thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
-                    plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
-                    name_event_modif = "_".join(name_event.split())
-                    name_cat_modif = "_".join(name_cat.split())
-                    # short_name
-                    fig.savefig(f"{name_event_modif}_{name_cat_modif}.png")
-                    plt.close(fig)
-                    # plt.show()
+                for team in teams:
+                    t_ = "\nClassement" + (team if len(teams) > 1 else "")
+                    t += (f"{t_} : {cat[('GIF SUR YVETTE', team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
+                t += "\n"
+                (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_title(t, size=15)
+                (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_yticks(list(range(ceil(note_max))))
+                lines, labels = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
+                (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
+            name_event_modif = "_".join(name_event.split())
+            plt.tight_layout()
+            fig.savefig(f"{name_event_modif}.png")
+            # plt.show()
+            plt.close(fig)
