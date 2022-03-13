@@ -26,13 +26,33 @@ def get_data_from_json(my_js_file):
             cat = (categorie["label"], categorie["entityType"])
             logging.info(cat)
             my_data[title][cat] = {}
-            for team in categorie["teams"]:
-                city_team = (team["city"], team["label"])
-                my_data[title][cat][city_team] = {"classement": team["markRank"], "gyms": {}}
-                for entity in team["entities"]:
-                    if "mark" in entity:
+            if categorie["entityType"] == "EQU":
+                for team in categorie["teams"]:
+                    city_team = (team["city"], team["label"])
+                    my_data[title][cat][city_team] = {"classement": team["markRank"], "gyms": {}}
+                    for entity in team["entities"]:
+                        if "mark" in entity:
+                            my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
+                            logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}") # markRank identique que l'equipe (en tout cas dans le cas equipe)
+                            my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
+                            if (entity["firstname"], entity["lastname"]) in all_gyms:
+                                raise Exception("pouet")
+                            all_gyms[(entity["firstname"], entity["lastname"])] = float(entity["mark"]["value"])
+                            for appm in entity["mark"]["appMarks"]:
+                                logging.info(f"    {appm['labelApp']} {appm['value']}")
+                                my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
+                    logging.debug(my_data[title])
+                # dic_rank = {key: rank for rank, key in enumerate(sorted(all_gyms, key=all_gyms.get, reverse=True), 1)}
+                # for city, gyms in my_data[title][cat].items():
+                #     for nom_gym, _ in gyms["gyms"].items():
+                #         my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
+            else:
+                for entity in categorie["entities"]:
+                    if float(entity['mark']['value']) > 1e-6:
+                        city_team = (entity["city"], "eq0")
+                        if city_team not in my_data[title][cat]: my_data[title][cat][city_team] = {"classement": -1, "gyms": {}}
+                        logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}")
                         my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
-                        logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}") # markRank identique que l'equipe (en tout cas dans le cas equipe)
                         my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
                         if (entity["firstname"], entity["lastname"]) in all_gyms:
                             raise Exception("pouet")
@@ -40,11 +60,11 @@ def get_data_from_json(my_js_file):
                         for appm in entity["mark"]["appMarks"]:
                             logging.info(f"    {appm['labelApp']} {appm['value']}")
                             my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
-                logging.debug(my_data[title])
             dic_rank = {key: rank for rank, key in enumerate(sorted(all_gyms, key=all_gyms.get, reverse=True), 1)}
             for city, gyms in my_data[title][cat].items():
                 for nom_gym, _ in gyms["gyms"].items():
                     my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
+
     return my_data
 
 def filter_data_with(d, filter_str):
@@ -62,7 +82,7 @@ def filter_data_with(d, filter_str):
 
 
 if __name__ == "__main__":
-    for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json"]:
+    for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json", "2022_03_13_stpierre.json"]:
         my_dic = get_data_from_json(json_file)
         gif = "GIF SUR YVETTE"
         my_dic = filter_data_with(my_dic, gif)
@@ -87,7 +107,7 @@ if __name__ == "__main__":
                         note_max = max(note_max, max(marks))
                         shor_team_name = team[:2] + team[-1]
                         eq = f" {shor_team_name} " if len(teams) > 1 else " "
-                        label = f"{nom_gym[0]}{eq}: total {float(notes['total'])}, {notes['rankCalc']}$^e$"
+                        label = f"{nom_gym[0]}{eq}: total {float(notes['total']):.1f}, {notes['rankCalc']}$^e$"
                         (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).plot(
                             label_loc,
                             marks,
@@ -104,7 +124,7 @@ if __name__ == "__main__":
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_title(t, size=15)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_yticks(list(range(ceil(note_max))))
                 lines, labels = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
-                (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
+                (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2 if entype == "EQU" else 1.0, 1.1))
             name_event_modif = "_".join(name_event.split())
             plt.tight_layout()
             plt.subplots_adjust(bottom=0.05 / nx)
