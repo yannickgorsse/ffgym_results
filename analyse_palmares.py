@@ -79,8 +79,11 @@ def filter_data_with(d, filter_str):
 
     return filtered_dic
 
+
 def get_club_id(club_name):
+    if club_name != "GIF SUR YVETTE": raise Exception()
     return "2862"
+
 
 def get_data_in_json(club_id):
     url_post = f"https://resultats.ffgym.fr/api/search/evenements?club={club_id}"
@@ -92,6 +95,7 @@ def get_data_in_json(club_id):
         list_of_jsons.append(json.loads(get_d.text))
         print(f" OK!")
     return list_of_jsons
+
 
 def plot_data(list_of_jsons, club_name):
 
@@ -139,7 +143,7 @@ def plot_data(list_of_jsons, club_name):
                 t += "\n"
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_title(t, size=15)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_yticks(list(range(ceil(note_max))))
-                lines, labels = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
+                _, _ = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2 if entype == "EQU" else 1.0, 1.1))
             if len(event) % 2:
                 if nx > 1:
