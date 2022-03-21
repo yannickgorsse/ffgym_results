@@ -9,6 +9,7 @@ import requests
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
 
+
 def get_data_from_json(my_js_data):
     my_data = {}
     for event in my_js_data:
@@ -32,7 +33,7 @@ def get_data_from_json(my_js_data):
                     for entity in team["entities"]:
                         if "mark" in entity:
                             my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
-                            logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}") # markRank identique que l'equipe (en tout cas dans le cas equipe)
+                            logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}")
                             my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
                             if (entity["firstname"], entity["lastname"]) in all_gyms:
                                 raise Exception("pouet")
@@ -41,15 +42,12 @@ def get_data_from_json(my_js_data):
                                 logging.info(f"    {appm['labelApp']} {appm['value']}")
                                 my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
                     logging.debug(my_data[title])
-                # dic_rank = {key: rank for rank, key in enumerate(sorted(all_gyms, key=all_gyms.get, reverse=True), 1)}
-                # for city, gyms in my_data[title][cat].items():
-                #     for nom_gym, _ in gyms["gyms"].items():
-                #         my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
             else:
                 for entity in categorie["entities"]:
-                    if float(entity['mark']['value']) > 1e-6:
+                    if float(entity["mark"]["value"]) > 1e-6:
                         city_team = (entity["city"], "eq0")
-                        if city_team not in my_data[title][cat]: my_data[title][cat][city_team] = {"classement": -1, "gyms": {}}
+                        if city_team not in my_data[title][cat]:
+                            my_data[title][cat][city_team] = {"classement": -1, "gyms": {}}
                         logging.info(f"{entity['firstname']} {entity['mark']['value']} {entity['markRank']}")
                         my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
                         my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
@@ -66,6 +64,7 @@ def get_data_from_json(my_js_data):
 
     return my_data
 
+
 def filter_data_with(d, filter_str):
     filtered_dic = copy.deepcopy(d)
 
@@ -75,7 +74,8 @@ def filter_data_with(d, filter_str):
             for (city, _), _ in cat.items():
                 if city == filter_str:
                     with_gif = True
-            if not with_gif: del filtered_dic[ne][nc]
+            if not with_gif:
+                del filtered_dic[ne][nc]
 
     return filtered_dic
 
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         for (name_event, dates), event in my_dic.items():
             ny = 2
             nx = ceil(len(event) / ny)
-            fig, axs = plt.subplots(nx, ny, subplot_kw={'projection': 'polar'}, figsize=(8 * ny, 8 * nx))
+            fig, axs = plt.subplots(nx, ny, subplot_kw={"projection": "polar"}, figsize=(8 * ny, 8 * nx))
             fig.suptitle(f"{name_event} - {dates}\n", fontsize=20)
             for i, ((name_cat, entype), cat) in enumerate(event.items()):
                 nb_gym = 0
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                             zorder=100 if city == gif else 1,
                             linewidth=2.5 if city == gif else 0.75,
                         )
-                t = name_cat # - " + ("équipes" if entype == "EQU" else "indiv")
+                t = name_cat
                 for team in teams:
                     t_ = "\nClassement " + (team if len(teams) > 1 else "")
                     t += (f"{t_} : {cat[(gif, team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
@@ -135,11 +135,12 @@ if __name__ == "__main__":
                 lines, labels = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2 if entype == "EQU" else 1.0, 1.1))
             if len(event) % 2:
-                if nx > 1: axs[-1, -1].axis('off')
-                else : axs[-1].axis('off')
+                if nx > 1:
+                    axs[-1, -1].axis("off")
+                else:
+                    axs[-1].axis("off")
             name_event_modif = "_".join(name_event.split())
             plt.tight_layout()
             plt.subplots_adjust(bottom=0.05 / nx)
             fig.savefig(f"{name_event_modif}.png")
-            # plt.show()
             plt.close(fig)
