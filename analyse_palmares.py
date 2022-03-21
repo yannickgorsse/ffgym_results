@@ -5,14 +5,13 @@ import numpy as np
 from math import ceil
 import copy
 import logging
+import requests
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
 
-def get_data_from_json(my_js_file):
-    with open(my_js_file, "r") as f:
-        parsed = json.load(f)
+def get_data_from_json(my_js_data):
     my_data = {}
-    for event in parsed:
+    for event in my_js_data:
         lieu = event["event"]["lieu"]
         date_debut, date_fin = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d"), datetime.strptime(
             event["event"]["dateFin"][:10], "%Y-%m-%d"
@@ -82,9 +81,15 @@ def filter_data_with(d, filter_str):
 
 
 if __name__ == "__main__":
-    for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json", "2022_03_13_stpierre.json", "2022_03_19_ermont.json", "2022_03_20_herblay.json"]:
-        my_dic = get_data_from_json(json_file)
-        gif = "GIF SUR YVETTE"
+
+    gif = "GIF SUR YVETTE"
+    club_id = "2862"
+    url_post = f"https://resultats.ffgym.fr/api/search/evenements?club={club_id}"
+    post_d = requests.post(url_post)
+    for id in [x["id"] for x in json.loads(post_d.text)]:
+        get_d = requests.get(f"https://resultats.ffgym.fr/api/palmares/evenement/{id}")
+        json_data = json.loads(get_d.text)
+        my_dic = get_data_from_json(json_data)
         my_dic = filter_data_with(my_dic, gif)
         agres = ["Saut", "Barres asymétriques", "Poutre", "Sol"]
         agres = [*agres, agres[0]]
