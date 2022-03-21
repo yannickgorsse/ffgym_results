@@ -7,7 +7,7 @@ import copy
 import logging
 import requests
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(message)s")
+logging.basicConfig(level=logging.WARN, format="%(levelname)s:%(message)s")
 
 
 def get_data_from_json(my_js_data):
@@ -68,7 +68,7 @@ def get_data_from_json(my_js_data):
 def filter_data_with(d, filter_str):
     filtered_dic = copy.deepcopy(d)
 
-    for ne, event in my_dic.items():
+    for ne, event in d.items():
         for nc, cat in event.items():
             with_gif = False
             for (city, _), _ in cat.items():
@@ -79,18 +79,25 @@ def filter_data_with(d, filter_str):
 
     return filtered_dic
 
+def get_club_id(club_name):
+    return "2862"
 
-if __name__ == "__main__":
-
-    gif = "GIF SUR YVETTE"
-    club_id = "2862"
+def get_data_in_json(club_id):
     url_post = f"https://resultats.ffgym.fr/api/search/evenements?club={club_id}"
     post_d = requests.post(url_post)
+    list_of_jsons = []
     for id in [x["id"] for x in json.loads(post_d.text)]:
+        print(f"get event {id}...", end="")
         get_d = requests.get(f"https://resultats.ffgym.fr/api/palmares/evenement/{id}")
-        json_data = json.loads(get_d.text)
+        list_of_jsons.append(json.loads(get_d.text))
+        print(f" OK!")
+    return list_of_jsons
+
+def plot_data(list_of_jsons, club_name):
+
+    for json_data in list_of_jsons:
         my_dic = get_data_from_json(json_data)
-        my_dic = filter_data_with(my_dic, gif)
+        my_dic = filter_data_with(my_dic, club_name)
         agres = ["Saut", "Barres asymétriques", "Poutre", "Sol"]
         agres = [*agres, agres[0]]
 
@@ -105,7 +112,7 @@ if __name__ == "__main__":
                 note_max = 0
                 teams = []
                 for (city, team), data_city in cat.items():
-                    if city == gif:
+                    if city == club_name:
                         teams.append(team)
                     for nom_gym, notes in data_city["gyms"].items():
                         nb_gym += 1
@@ -120,15 +127,15 @@ if __name__ == "__main__":
                         (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).plot(
                             label_loc,
                             marks,
-                            label=None if city != gif else label,
-                            color="grey" if city != gif else None,
-                            zorder=100 if city == gif else 1,
-                            linewidth=2.5 if city == gif else 0.75,
+                            label=None if city != club_name else label,
+                            color="grey" if city != club_name else None,
+                            zorder=100 if city == club_name else 1,
+                            linewidth=2.5 if city == club_name else 0.75,
                         )
                 t = name_cat
                 for team in teams:
                     t_ = "\nClassement " + (team if len(teams) > 1 else "")
-                    t += (f"{t_} : {cat[(gif, team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
+                    t += (f"{t_} : {cat[(club_name, team)]['classement']}/{len(cat)}") if entype == "EQU" else ""
                 t += "\n"
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_title(t, size=15)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_yticks(list(range(ceil(note_max))))
@@ -144,3 +151,11 @@ if __name__ == "__main__":
             plt.subplots_adjust(bottom=0.05 / nx)
             fig.savefig(f"{name_event_modif}.png")
             plt.close(fig)
+
+
+if __name__ == "__main__":
+
+    club_name = "GIF SUR YVETTE"
+    club_id = get_club_id(club_name)
+    list_of_jsons = get_data_in_json(club_id)
+    plot_data(list_of_jsons, club_name)
