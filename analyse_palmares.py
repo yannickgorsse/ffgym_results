@@ -95,19 +95,23 @@ if __name__ == "__main__":
             fig, axs = plt.subplots(nx, ny, subplot_kw={'projection': 'polar'}, figsize=(8 * ny, 8 * nx))
             fig.suptitle(f"{name_event} - {dates}\n", fontsize=20)
             for i, ((name_cat, entype), cat) in enumerate(event.items()):
+                nb_gym = 0
                 label_loc = np.linspace(start=0, stop=2 * np.pi, num=len(agres))
                 note_max = 0
                 teams = []
                 for (city, team), data_city in cat.items():
                     if city == gif:
                         teams.append(team)
+                    for nom_gym, notes in data_city["gyms"].items():
+                        nb_gym += 1
+
                 for (city, team), data_city in cat.items():
                     for nom_gym, notes in data_city["gyms"].items():
                         marks = [float(notes[a]) if a in notes else 0 for a in agres]
                         note_max = max(note_max, max(marks))
                         shor_team_name = team[:2] + team[-1]
                         eq = f" {shor_team_name} " if len(teams) > 1 else " "
-                        label = f"{nom_gym[0]}{eq}: total {float(notes['total']):.1f}, {notes['rankCalc']}$^e$"
+                        label = f"{nom_gym[0]}{eq}: total {float(notes['total']):.1f}, {notes['rankCalc']}$^e$/{nb_gym}"
                         (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).plot(
                             label_loc,
                             marks,
