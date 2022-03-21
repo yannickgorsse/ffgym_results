@@ -129,6 +129,9 @@ if __name__ == "__main__":
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_yticks(list(range(ceil(note_max))))
                 lines, labels = (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).set_thetagrids(np.degrees(label_loc), labels=agres, zorder=50)
                 (axs[i // ny, i % ny] if nx > 1 else axs[i % ny]).legend(loc="upper right", bbox_to_anchor=(1.2 if entype == "EQU" else 1.0, 1.1))
+            if len(event) % 2:
+                if nx > 1: axs[-1, -1].axis('off')
+                else : axs[-1].axis('off')
             name_event_modif = "_".join(name_event.split())
             plt.tight_layout()
             plt.subplots_adjust(bottom=0.05 / nx)
