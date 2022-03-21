@@ -11,17 +11,19 @@ logging.basicConfig(level=logging.WARN, format="%(levelname)s:%(message)s")
 
 
 def get_data_from_json(my_js_data):
+    discipline = "GYM ARTISTIQUE FEMININE"
     my_data = {}
     for event in my_js_data:
+        categories = [c for c in event["categories"] if c["labelDiscipline"] == discipline]
+        if len(categories) == 0: continue
         lieu = event["event"]["lieu"]
-        date_debut, date_fin = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d"), datetime.strptime(
-            event["event"]["dateFin"][:10], "%Y-%m-%d"
-        )
+        date_debut = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d")
+        date_fin = datetime.strptime(event["event"]["dateFin"][:10], "%Y-%m-%d")
         date_debut, date_fin = date_debut.strftime("%d/%m/%Y"), date_fin.strftime("%d/%m/%Y")
         title = (lieu, f"{date_debut} - {date_fin}")
         logging.info(title)
         my_data[title] = {}
-        for categorie in event["categories"]:
+        for categorie in categories:
             all_gyms = {}
             cat = (categorie["label"], categorie["entityType"])
             logging.info(cat)
@@ -164,8 +166,12 @@ def plot_data(list_of_jsons, club_name):
 
 if __name__ == "__main__":
 
+    # club_name = "MENNECY"
+    # club_id = "1127"
+
     club_name = "GIF SUR YVETTE"
-    # search_club_id(club_name) # search matching ids and exits
     club_id = "2862"
+
+    # search_club_id(club_name) # search matching ids and exits
     list_of_jsons = get_data_in_json(club_id)
     plot_data(list_of_jsons, club_name)
