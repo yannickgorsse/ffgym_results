@@ -82,7 +82,7 @@ def filter_data_with(d, filter_str):
 
 
 if __name__ == "__main__":
-    for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json", "2022_03_13_stpierre.json"]:
+    for json_file in ["2022_01_23_morsang.json", "2022_02_13_bretigny.json", "2022_03_13_stpierre.json", "2022_03_19_ermont.json", "2022_03_20_herblay.json"]:
         my_dic = get_data_from_json(json_file)
         gif = "GIF SUR YVETTE"
         my_dic = filter_data_with(my_dic, gif)
