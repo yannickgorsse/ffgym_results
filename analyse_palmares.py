@@ -80,9 +80,14 @@ def filter_data_with(d, filter_str):
     return filtered_dic
 
 
-def get_club_id(club_name):
-    if club_name != "GIF SUR YVETTE": raise Exception()
-    return "2862"
+def search_club_id(club_name):
+    p = club_name.replace(" ", "%20")
+    url_post = f"https://resultats.ffgym.fr/api/search/simple?season=2022&pattern={p}"
+    results = json.loads(requests.get(url_post).text)
+    print("possible ids :")
+    for r in results:
+        print(f"{r['label']:50} : {r['id']}")
+    exit()
 
 
 def get_data_in_json(club_id):
@@ -160,6 +165,7 @@ def plot_data(list_of_jsons, club_name):
 if __name__ == "__main__":
 
     club_name = "GIF SUR YVETTE"
-    club_id = get_club_id(club_name)
+    # search_club_id(club_name) # search matching ids and exits
+    club_id = "2862"
     list_of_jsons = get_data_in_json(club_id)
     plot_data(list_of_jsons, club_name)
