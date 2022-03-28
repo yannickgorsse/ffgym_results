@@ -6,7 +6,10 @@ from math import ceil
 import copy
 import logging
 import requests
+import pandas as pd
+import re
 
+pd.set_option("display.max_rows", None)
 logging.basicConfig(level=logging.WARN, format="%(levelname)s:%(message)s")
 
 
@@ -15,7 +18,8 @@ def get_data_from_json(my_js_data):
     my_data = {}
     for event in my_js_data:
         categories = [c for c in event["categories"] if c["labelDiscipline"] == discipline]
-        if len(categories) == 0: continue
+        if len(categories) == 0:
+            continue
         lieu = event["event"]["lieu"]
         date_debut = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d")
         date_fin = datetime.strptime(event["event"]["dateFin"][:10], "%Y-%m-%d")
@@ -82,14 +86,16 @@ def filter_data_with(d, filter_str):
     return filtered_dic
 
 
-def search_club_id(club_name):
+def search_club_id(club_name, club_id=None):
+    if club_id is not None:
+        return club_id
     p = club_name.replace(" ", "%20")
     url_post = f"https://resultats.ffgym.fr/api/search/simple?season=2022&pattern={p}"
     results = json.loads(requests.get(url_post).text)
     print("possible ids :")
     for r in results:
         print(f"{r['label']:50} : {r['id']}")
-    exit()
+    return input("Choisir le bon id : ")
 
 
 def get_data_in_json(club_id):
@@ -166,12 +172,7 @@ def plot_data(list_of_jsons, club_name):
 
 if __name__ == "__main__":
 
-    # club_name = "MENNECY"
-    # club_id = "1127"
-
     club_name = "GIF SUR YVETTE"
-    club_id = "2862"
-
-    # search_club_id(club_name) # search matching ids and exits
+    club_id = search_club_id(club_name)
     list_of_jsons = get_data_in_json(club_id)
     plot_data(list_of_jsons, club_name)
