@@ -3,7 +3,7 @@ Ce script permet de récupérer, pour le club de gymnastique artistique féminin
 Après avoir téléchargé les résultats, un fichier png par compétition est sauvegardé, contenant les graphiques des résultats pour chaque catégorie.
 
 # Utilisation
-on doit dans un premier temps déterminer l'ID du club dont on souhaite obtenir les résultats. C'est possible en utilisant la méthode search_club_id(club_name), qui proposera une liste d'ID potentiels. Une fois le club identifié, il suffit de renseigner son ID dans la suite du script.
+On réalise en premier lieu une recherche à partir du nom du club, des IDs de club seront alors proposés. Il suffit d'entrer l'ID de son choix et le script va générer une image par compétition en mettant en évidence les gymnastes du club d'intérêt.
 
 
 # Exemple de résultat
