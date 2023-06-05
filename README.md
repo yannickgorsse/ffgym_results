@@ -1,5 +1,4 @@
 # Description
-
 Ce script permet de récupérer, pour le club de gymnastique artistique féminine de son choix, les résultats des compétitions de la saison 2022 sur le site de la Fédération Française de Gym (https://resultats.ffgym.fr/accueil) via leur api.
 Après avoir téléchargé les résultats, un fichier png par compétition est sauvegardé, contenant les graphiques des résultats pour chaque catégorie.
 
