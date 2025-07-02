@@ -77,6 +77,8 @@ def filter_data_with(d, filter_str):
                     with_gif = True
             if not with_gif:
                 del filtered_dic[ne][nc]
+        if len(filtered_dic[ne]) == 0:
+            del filtered_dic[ne]
 
     return filtered_dic
 
