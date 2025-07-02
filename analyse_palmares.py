@@ -71,12 +71,11 @@ def filter_data_with(d, filter_str):
 
     for ne, event in d.items():
         for nc, cat in event.items():
-            with_gif = False
-            for (city, _), _ in cat.items():
-                if city == filter_str:
-                    with_gif = True
+            with_gif = any(city == filter_str for (city, _), _ in cat.items())
             if not with_gif:
                 del filtered_dic[ne][nc]
+        if len(filtered_dic[ne]) == 0:
+            del filtered_dic[ne]
 
     return filtered_dic
 
