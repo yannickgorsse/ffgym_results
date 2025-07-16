@@ -14,6 +14,9 @@ NY = 2
 AGRES = ["Saut", "Barres asymétriques", "Poutre", "Sol"]
 AGRES = [*AGRES, AGRES[0]]
 
+# Default category used when computing global rankings
+CATEGORY_FILTER = "Nationale 10 ans GAF"
+
 
 def _parse_team_category(categorie, all_gyms):
     """Return parsed data for a team category."""
@@ -146,6 +149,95 @@ def get_data_in_json(club_id, year, export=False):
         print(f" OK!")
     return list_of_jsons
 
+
+def get_all_events_in_json(year, export=False):
+    """Return palmares JSON for all events of a season."""
+    url_post = "https://resultats.ffgym.fr/api/search/criteria"
+    payload = {"season": year, "discipline": GAF}
+    post_d = requests.post(url_post, json=payload)
+    list_of_jsons = []
+    for event_info in json.loads(post_d.text).get("listEvenement", []):
+        event_id = event_info.get("id")
+        if not event_id:
+            continue
+        print(f"get event {event_id}...", end="")
+        get_d = requests.get(
+            f"https://resultats.ffgym.fr/api/palmares/evenement/{event_id}"
+        )
+        try:
+            event_json = json.loads(get_d.text)
+        except Exception:
+            continue
+        list_of_jsons.append(event_json)
+        if export:
+            with open(f"/tmp/event_{event_id}.json", "w") as f:
+                json.dump(get_d.text, f)
+        print(" OK!")
+    return list_of_jsons
+
+
+def _extract_global_records(list_js_data, category_filter=CATEGORY_FILTER):
+    records = []
+    for event in list_js_data:
+        categories = [
+            c
+            for c in event.get("categories", [])
+            if c.get("label") == category_filter and c.get("entityType") != "EQU"
+        ]
+        for categorie in categories:
+            for entity in categorie.get("entities", []):
+                try:
+                    value = float(entity["mark"]["value"])
+                except (KeyError, ValueError, TypeError):
+                    continue
+                if value <= 1e-6:
+                    continue
+                records.append(
+                    {
+                        "City": entity.get("city", ""),
+                        "Firstname": entity.get("firstname", ""),
+                        "Lastname": entity.get("lastname", ""),
+                        "Global": value,
+                    }
+                )
+    return records
+
+
+def compute_average_scores(records):
+    """Return DataFrame with the average global score per gymnast."""
+    gymnast_scores = {}
+    for record in records:
+        key = (record.get("Firstname", ""), record.get("Lastname", ""))
+        global_score = record.get("Global", 0)
+        if not global_score:
+            continue
+        gymnast_scores.setdefault(key, {"scores": [], "City": record.get("City", "")})
+        gymnast_scores[key]["scores"].append(global_score)
+
+    results = []
+    for (firstname, lastname), data in gymnast_scores.items():
+        scores = data["scores"]
+        city = data["City"]
+        avg_score = sum(scores) / len(scores) if scores else 0
+        results.append(
+            {
+                "Prénom": firstname,
+                "Nom": lastname,
+                "Ville": city,
+                "Nombre de compétitions": len(scores),
+                "Note moyenne": round(avg_score, 2),
+            }
+        )
+
+    df = pd.DataFrame(results)
+    return df.sort_values(by="Note moyenne", ascending=False)
+
+
+def get_global_ranking(list_js_data, category_filter=CATEGORY_FILTER):
+    """Compute the average ranking table for the given events."""
+    records = _extract_global_records(list_js_data, category_filter)
+    return compute_average_scores(records)
+
 def get_total_number_of_gym(cat):
     nb_gym = 0
     for _, data_city in cat.items():
@@ -231,3 +323,8 @@ if __name__ == "__main__":
     # club_id = "2862"
     list_of_jsons = get_data_in_json(club_id, "2023", export=True)
     plot_data(list_of_jsons, club_name)
+
+    # Exemple pour extraire le classement moyen sur une saison
+    events = get_all_events_in_json("2024")
+    ranking_df = get_global_ranking(events)
+    print(ranking_df.head())
