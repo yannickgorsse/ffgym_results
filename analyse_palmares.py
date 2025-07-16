@@ -14,56 +14,98 @@ NY = 2
 AGRES = ["Saut", "Barres asymétriques", "Poutre", "Sol"]
 AGRES = [*AGRES, AGRES[0]]
 
+
+def _parse_team_category(categorie, all_gyms):
+    """Return parsed data for a team category."""
+    cat_data = {}
+    for team in categorie["teams"]:
+        city_team = (team["city"], team["label"])
+        cat_data[city_team] = {"classement": team["markRank"], "gyms": {}}
+        for entity in team["entities"]:
+            if "mark" not in entity:
+                continue
+            gym_key = (entity["firstname"], entity["lastname"])
+            cat_data[city_team]["gyms"][gym_key] = {"total": entity["mark"]["value"]}
+            if gym_key in all_gyms:
+                raise Exception("pouet")
+            all_gyms[gym_key] = float(entity["mark"]["value"])
+            for appm in entity["mark"]["appMarks"]:
+                cat_data[city_team]["gyms"][gym_key][appm["labelApp"]] = appm["value"]
+    return cat_data
+
+
+def _parse_individual_category(categorie, all_gyms):
+    """Return parsed data for an individual category."""
+    cat_data = {}
+    for entity in categorie["entities"]:
+        if float(entity["mark"]["value"]) <= 1e-6:
+            continue
+        city_team = (entity["city"], "eq0")
+        cat_data.setdefault(city_team, {"classement": -1, "gyms": {}})
+        gym_key = (entity["firstname"], entity["lastname"])
+        cat_data[city_team]["gyms"][gym_key] = {"total": entity["mark"]["value"]}
+        if gym_key in all_gyms:
+            raise Exception("pouet")
+        all_gyms[gym_key] = float(entity["mark"]["value"])
+        for appm in entity["mark"]["appMarks"]:
+            cat_data[city_team]["gyms"][gym_key][appm["labelApp"]] = appm["value"]
+    return cat_data
+
+
+def _compute_ranks(all_gyms):
+    return {
+        key: rank
+        for rank, key in enumerate(
+            sorted(all_gyms, key=all_gyms.get, reverse=True), 1
+        )
+    }
+
+
+def _parse_category(categorie):
+    all_gyms = {}
+    if categorie["entityType"] == "EQU":
+        cat_data = _parse_team_category(categorie, all_gyms)
+    else:
+        cat_data = _parse_individual_category(categorie, all_gyms)
+
+    ranks = _compute_ranks(all_gyms)
+    for city, gyms in cat_data.items():
+        for nom_gym in gyms["gyms"]:
+            gyms["gyms"][nom_gym]["rankCalc"] = ranks[nom_gym]
+
+    return (categorie["label"], categorie["entityType"]), cat_data
+
+
+def _parse_event(event, discipline):
+    print(event["event"]["lieu"])
+    categories = [c for c in event["categories"] if c["labelDiscipline"] == discipline]
+    if not categories:
+        return None
+    lieu = event["event"]["lieu"]
+    date_debut = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d")
+    date_fin = datetime.strptime(event["event"]["dateFin"][:10], "%Y-%m-%d")
+    date_debut, date_fin = date_debut.strftime("%d/%m/%Y"), date_fin.strftime("%d/%m/%Y")
+    title = (lieu, f"{date_debut} - {date_fin}")
+
+    event_data = {}
+    for categorie in categories:
+        cat_key, cat_data = _parse_category(categorie)
+        event_data[cat_key] = cat_data
+    return title, event_data
+
+
 def get_data_from_json(my_js_data):
     discipline = "GYM ARTISTIQUE FEMININE"
     my_data = {}
     for event in my_js_data:
-        print(event["event"]["lieu"])
-        categories = [c for c in event["categories"] if c["labelDiscipline"] == discipline]
-        if len(categories) == 0:
+        parsed = _parse_event(event, discipline)
+        if parsed is None:
             continue
-        lieu = event["event"]["lieu"]
-        date_debut = datetime.strptime(event["event"]["dateDebut"][:10], "%Y-%m-%d")
-        date_fin = datetime.strptime(event["event"]["dateFin"][:10], "%Y-%m-%d")
-        date_debut, date_fin = date_debut.strftime("%d/%m/%Y"), date_fin.strftime("%d/%m/%Y")
-        title = (lieu, f"{date_debut} - {date_fin}")
-        my_data[title] = {}
-        for categorie in categories:
-            all_gyms = {}
-            cat = (categorie["label"], categorie["entityType"])
-            my_data[title][cat] = {}
-            if categorie["entityType"] == "EQU":
-                for team in categorie["teams"]:
-                    city_team = (team["city"], team["label"])
-                    my_data[title][cat][city_team] = {"classement": team["markRank"], "gyms": {}}
-                    for entity in team["entities"]:
-                        if "mark" in entity:
-                            my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
-                            my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
-                            if (entity["firstname"], entity["lastname"]) in all_gyms:
-                                raise Exception("pouet")
-                            all_gyms[(entity["firstname"], entity["lastname"])] = float(entity["mark"]["value"])
-                            for appm in entity["mark"]["appMarks"]:
-                                my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
-            else:
-                for entity in categorie["entities"]:
-                    if float(entity["mark"]["value"]) > 1e-6:
-                        city_team = (entity["city"], "eq0")
-                        if city_team not in my_data[title][cat]:
-                            my_data[title][cat][city_team] = {"classement": -1, "gyms": {}}
-                        my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])] = {}
-                        my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])]["total"] = entity["mark"]["value"]
-                        if (entity["firstname"], entity["lastname"]) in all_gyms:
-                            raise Exception("pouet")
-                        all_gyms[(entity["firstname"], entity["lastname"])] = float(entity["mark"]["value"])
-                        for appm in entity["mark"]["appMarks"]:
-                            my_data[title][cat][city_team]["gyms"][(entity["firstname"], entity["lastname"])][appm["labelApp"]] = appm["value"]
-            dic_rank = {key: rank for rank, key in enumerate(sorted(all_gyms, key=all_gyms.get, reverse=True), 1)}
-            for city, gyms in my_data[title][cat].items():
-                for nom_gym, _ in gyms["gyms"].items():
-                    my_data[title][cat][city]["gyms"][nom_gym]["rankCalc"] = dic_rank[nom_gym]
+        title, event_data = parsed
+        my_data[title] = event_data
 
     return my_data
+
 
 
 def filter_data_with(d, filter_str):
